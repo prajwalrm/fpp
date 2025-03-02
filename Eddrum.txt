@@ -1,0 +1,68 @@
+import unittest
+from unittest.mock import patch, MagicMock
+from your_module import editDrumRCA  # Replace 'your_module' with the actual module name
+
+class TestEditDrumRCA(unittest.TestCase):
+
+    @patch("your_module.update_rca_and_send")  # Mock update_rca_and_send
+    @patch("your_module.getRCAObjectFromTradeID")  # Mock getRCAObjectFromTradeID
+    @patch("your_module.RCA_STAMP_MAP", {"VALID_STAMP": "Mapped_Stamp"})  # Mock RCA_STAMP_MAP
+    def test_successful_rca_update(self, mock_get_rca, mock_update_rca):
+        """Test successful RCA update"""
+        # Mock RCA object
+        mock_rca_obj = MagicMock()
+        mock_get_rca.return_value = mock_rca_obj
+
+        # Run function
+        editDrumRCA("TRADE123", "VALID_STAMP", "mock_db")
+
+        # Assertions
+        mock_get_rca.assert_called_once_with("TRADE123", "mock_db")
+        mock_rca_obj.RcaStamp.setValue.assert_called_once_with("Mapped_Stamp")
+        mock_rca_obj.write.assert_called_once()
+        mock_update_rca.assert_called_once_with("mock_db", mock_rca_obj, user_update=True)
+
+    @patch("your_module.update_rca_and_send")
+    @patch("your_module.getRCAObjectFromTradeID")
+    def test_missing_rca_object(self, mock_get_rca, mock_update_rca):
+        """Test behavior when RCA object is missing"""
+        mock_get_rca.return_value = None  # Simulate missing RCA object
+
+        editDrumRCA("TRADE123", "VALID_STAMP", "mock_db")
+
+        mock_get_rca.assert_called_once_with("TRADE123", "mock_db")
+        mock_update_rca.assert_not_called()  # Should NOT call update_rca_and_send
+
+    @patch("your_module.update_rca_and_send")
+    @patch("your_module.getRCAObjectFromTradeID")
+    @patch("your_module.RCA_STAMP_MAP", {})
+    def test_missing_rca_stamp_mapping(self, mock_get_rca, mock_update_rca):
+        """Test behavior when RCA_STAMP_MAP does not contain the stamp"""
+        mock_rca_obj = MagicMock()
+        mock_get_rca.return_value = mock_rca_obj
+
+        editDrumRCA("TRADE123", "INVALID_STAMP", "mock_db")
+
+        mock_get_rca.assert_called_once_with("TRADE123", "mock_db")
+        mock_rca_obj.RcaStamp.setValue.assert_called_once_with(None)  # Should be None
+        mock_rca_obj.write.assert_called_once()
+        mock_update_rca.assert_called_once_with("mock_db", mock_rca_obj, user_update=True)
+
+    @patch("your_module.update_rca_and_send")
+    @patch("your_module.getRCAObjectFromTradeID")
+    def test_exception_handling_in_write(self, mock_get_rca, mock_update_rca):
+        """Test exception handling when write() fails"""
+        mock_rca_obj = MagicMock()
+        mock_rca_obj.write.side_effect = Exception("Write failure")  # Simulate error in write
+        mock_get_rca.return_value = mock_rca_obj
+
+        with self.assertRaises(Exception):  # Ensure the exception is raised
+            editDrumRCA("TRADE123", "VALID_STAMP", "mock_db")
+
+        mock_get_rca.assert_called_once_with("TRADE123", "mock_db")
+        mock_rca_obj.RcaStamp.setValue.assert_called_once_with("Mapped_Stamp")
+        mock_rca_obj.write.assert_called_once()
+        mock_update_rca.assert_not_called()  # Should not proceed if write() fails
+
+if __name__ == "__main__":
+    unittest.main()
