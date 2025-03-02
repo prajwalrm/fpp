@@ -1,0 +1,98 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import process_rca_stamp  # Replace 'your_module' with actual module name
+
+class TestProcessRcaStamp(unittest.TestCase):
+
+    @patch("your_module.set_fo_rca_stamp")
+    @patch("your_module.set_reg_rca_stamp")
+    def test_process_with_fo_delay(self, mock_set_reg_rca, mock_set_fo_rca):
+        """Test processing RCA with FO Delay enabled"""
+        task_data = {"task": MagicMock(), "event_age": 2}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        rca_obj.RcaStamp.return_value = None
+
+        result = process_rca_stamp(task_data, rca_obj, parent_task, db, process_fo_delay=True)
+
+        # ✅ Ensure FO Delay method is called
+        mock_set_fo_rca.assert_called_once_with(task_data["task"], rca_obj, parent_task)
+        mock_set_reg_rca.assert_not_called()
+
+        # ✅ Verify RCA updates are applied
+        rca_obj.TradeAge.setValue.assert_called_once_with(2)
+        rca_obj.write.assert_called_once()
+        self.assertEqual(result, rca_obj)
+
+    @patch("your_module.set_fo_rca_stamp")
+    @patch("your_module.set_reg_rca_stamp")
+    def test_process_without_fo_delay(self, mock_set_reg_rca, mock_set_fo_rca):
+        """Test processing RCA without FO Delay"""
+        task_data = {"task": MagicMock(), "event_age": 3}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        rca_obj.RcaStamp.return_value = None
+
+        result = process_rca_stamp(task_data, rca_obj, parent_task, db, process_fo_delay=False)
+
+        # ✅ Ensure regular RCA stamping method is called
+        mock_set_reg_rca.assert_called_once_with(task_data["task"], 3, rca_obj, parent_task)
+        mock_set_fo_rca.assert_not_called()
+
+        # ✅ Verify RCA updates are applied
+        rca_obj.TradeAge.setValue.assert_called_once_with(3)
+        rca_obj.write.assert_called_once()
+        self.assertEqual(result, rca_obj)
+
+    def test_missing_task(self):
+        """Test when task is missing in task_data"""
+        task_data = {"event_age": 5}  # No "task" key
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        result = process_rca_stamp(task_data, rca_obj, parent_task, db)
+
+        # ✅ Ensure RCA is NOT modified
+        rca_obj.write.assert_not_called()
+        self.assertIsNone(result)
+
+    def test_existing_rca_stamp(self):
+        """Test when RCA stamp already exists"""
+        task_data = {"task": MagicMock(), "event_age": 2}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        rca_obj.RcaStamp.return_value = "EXISTING_STAMP"
+
+        result = process_rca_stamp(task_data, rca_obj, parent_task, db)
+
+        # ✅ Ensure no stamping functions are called
+        rca_obj.TradeAge.setValue.assert_called_once_with(2)
+        rca_obj.write.assert_called_once()
+        self.assertEqual(result, rca_obj)
+
+    @patch("your_module.logger")
+    def test_exception_handling(self, mock_logger):
+        """Test exception handling"""
+        task_data = {"task": MagicMock(), "event_age": 2}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        # ✅ Simulate exception in RCA processing
+        rca_obj.TradeAge.setValue.side_effect = Exception("Mock Error")
+
+        result = process_rca_stamp(task_data, rca_obj, parent_task, db)
+
+        # ✅ Ensure error is logged
+        mock_logger.error.assert_called_once()
+        self.assertIsNone(result)
+
+if __name__ == "__main__":
+    unittest.main()
