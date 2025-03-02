@@ -1,0 +1,63 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import process_rca_task  # Replace `your_module` with actual module name
+
+class TestProcessRcaTask(unittest.TestCase):
+
+    @patch("your_module.getRCAObject")
+    @patch("your_module.get_parent_task")
+    @patch("your_module.process_fo_delay_stamp")
+    @patch("your_module.process_reg_rca_stamp")
+    @patch("your_module.update_rca_and_send")
+    @patch("your_module.sandra.db", new_callable=MagicMock)
+    def test_process_rca_task_success(self, mock_db, mock_update_rca, mock_process_reg_rca, 
+                                      mock_process_fo_delay, mock_get_parent, mock_get_rca):
+        """Test successful processing of RCA tasks"""
+
+        # Mock Data
+        task_data_list = [{"task": "Task1"}, {"task": "Task2"}]
+        mock_rca = MagicMock()
+        mock_rca.RcaStamp.return_value = False  # Ensures RCA stamping logic is executed
+        mock_get_rca.return_value = mock_rca
+        mock_get_parent.return_value = MagicMock()
+
+        # Call function
+        result = process_rca_task(task_data_list)
+
+        # ✅ Check RCA retrieval
+        mock_get_rca.assert_called()
+        mock_get_parent.assert_called()
+
+        # ✅ Ensure processing steps are called
+        mock_process_fo_delay.assert_called()
+        mock_process_reg_rca.assert_called()
+
+        # ✅ Ensure update is sent to DRUM
+        mock_update_rca.assert_called()
+
+        # ✅ Ensure correct processed result format
+        expected_result = [{"task": "Task1", "status": "processed"}, {"task": "Task2", "status": "processed"}]
+        self.assertEqual(result, expected_result)
+
+    @patch("your_module.getRCAObject")
+    @patch("your_module.get_parent_task")
+    @patch("your_module.logger")
+    def test_process_rca_task_failure(self, mock_logger, mock_get_parent, mock_get_rca):
+        """Test error handling when RCA processing fails"""
+
+        # Mock Data
+        task_data_list = [{"task": "Task1"}]
+        mock_get_rca.side_effect = Exception("Database connection failed")  # Simulate failure
+
+        # Call function
+        result = process_rca_task(task_data_list)
+
+        # ✅ Ensure logger captures error
+        mock_logger.error.assert_called()
+
+        # ✅ Ensure failed status is returned
+        expected_result = [{"task": "Task1", "status": "Failed", "error": "Database connection failed"}]
+        self.assertEqual(result, expected_result)
+
+if __name__ == "__main__":
+    unittest.main()
