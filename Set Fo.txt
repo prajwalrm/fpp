@@ -1,0 +1,56 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import set_fo_rca_stamp  # Replace 'your_module' with actual module name
+
+class TestSetFoRcaStamp(unittest.TestCase):
+
+    @patch("your_module.is_fo_delay")  # Mock is_fo_delay
+    @patch("your_module.RegRCAReasonType")  # Mock RegRCAReasonType
+    def test_sets_fo_delay(self, mock_rca_reason_type, mock_is_fo_delay):
+        """Test when FO delay condition is met and sets FO_DELAY"""
+        task = MagicMock()
+        parent_task = MagicMock()
+        rca_obj = MagicMock()
+
+        # ✅ Simulate is_fo_delay returning True
+        mock_is_fo_delay.return_value = True
+        mock_rca_reason_type.FO_DELAY = "FO_DELAY_REASON"
+
+        set_fo_rca_stamp(task, rca_obj, parent_task)
+
+        # ✅ Verify setValue() is called with FO_DELAY
+        rca_obj.RcaStamp.setValue.assert_called_once_with("FO_DELAY_REASON")
+        rca_obj.write.assert_called_once()
+
+    @patch("your_module.is_fo_delay")
+    @patch("your_module.RegRCAReasonType")
+    def test_does_not_set_fo_delay(self, mock_rca_reason_type, mock_is_fo_delay):
+        """Test when FO delay condition is NOT met and does NOT set FO_DELAY"""
+        task = MagicMock()
+        parent_task = MagicMock()
+        rca_obj = MagicMock()
+
+        # ✅ Simulate is_fo_delay returning False
+        mock_is_fo_delay.return_value = False
+
+        set_fo_rca_stamp(task, rca_obj, parent_task)
+
+        # ✅ Verify setValue() is called with None
+        rca_obj.RcaStamp.setValue.assert_called_once_with(None)
+        rca_obj.write.assert_called_once()
+
+    @patch("your_module.is_fo_delay")
+    @patch("your_module.RegRCAReasonType")
+    def test_no_parent_task(self, mock_rca_reason_type, mock_is_fo_delay):
+        """Test when parent_task is None (should not set FO_DELAY)"""
+        task = MagicMock()
+        rca_obj = MagicMock()
+
+        set_fo_rca_stamp(task, rca_obj, None)  # Pass None as parent_task
+
+        # ✅ Verify setValue() is called with None
+        rca_obj.RcaStamp.setValue.assert_called_once_with(None)
+        rca_obj.write.assert_called_once()
+
+if __name__ == "__main__":
+    unittest.main()
