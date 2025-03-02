@@ -1,0 +1,70 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import determine_rca_reason_for_event_age_one  # Replace 'your_module' with actual module name
+
+class TestDetermineRcaReasonForEventAgeOne(unittest.TestCase):
+
+    @patch("your_module.RegRCAReasonType")  # Mock RegRCAReasonType
+    def test_technology_fix_in_subtasks(self, mock_rca_reason_type):
+        """Test when 'Technology Fix' is in OpenSubtaskStatuses"""
+        task = MagicMock()
+        task.OpenSubtaskStatuses.return_value = ["Technology Fix"]
+        task.OpenSubtaskStatuses.return_value = ["Technology Fix"]
+
+        mock_rca_reason_type.TECH_ISSUE = "TECH_ISSUE_REASON"
+
+        result = determine_rca_reason_for_event_age_one(task)
+        self.assertEqual(result, "TECH_ISSUE_REASON")
+
+    @patch("your_module.RegRCAReasonType")
+    def test_no_technology_fix_in_subtasks(self, mock_rca_reason_type):
+        """Test when OpenSubtaskStatuses exists but does not contain 'Technology Fix'"""
+        task = MagicMock()
+        task.OpenSubtaskStatuses.return_value = ["Other Fix"]
+
+        mock_rca_reason_type.QUERY = "QUERY_REASON"
+
+        result = determine_rca_reason_for_event_age_one(task)
+        self.assertEqual(result, "QUERY_REASON")
+
+    @patch("your_module.RegRCAReasonType")
+    def test_task_type_awaiting_fix_with_technology_team(self, mock_rca_reason_type):
+        """Test when task.Type() is 'Awaiting Fix' and QueryTeam() is 'Technology'"""
+        task = MagicMock()
+        task.OpenSubtaskStatuses.return_value = []
+        task.Type.return_value = "Awaiting Fix"
+        task.QueryTeam.return_value = "Technology"
+
+        mock_rca_reason_type.TECH_ISSUE = "TECH_ISSUE_REASON"
+
+        result = determine_rca_reason_for_event_age_one(task)
+        self.assertEqual(result, "TECH_ISSUE_REASON")
+
+    @patch("your_module.RegRCAReasonType")
+    def test_task_type_awaiting_fix_without_technology_team(self, mock_rca_reason_type):
+        """Test when task.Type() is 'Awaiting Fix' but QueryTeam() is NOT 'Technology'"""
+        task = MagicMock()
+        task.OpenSubtaskStatuses.return_value = []
+        task.Type.return_value = "Awaiting Fix"
+        task.QueryTeam.return_value = "OtherTeam"
+
+        mock_rca_reason_type.QUERY = "QUERY_REASON"
+
+        result = determine_rca_reason_for_event_age_one(task)
+        self.assertEqual(result, "QUERY_REASON")
+
+    @patch("your_module.RegRCAReasonType")
+    def test_default_ops_delay(self, mock_rca_reason_type):
+        """Test default case where none of the conditions match"""
+        task = MagicMock()
+        task.OpenSubtaskStatuses.return_value = []
+        task.Type.return_value = "Other Type"
+        task.QueryTeam.return_value = "OtherTeam"
+
+        mock_rca_reason_type.OPS_DELAY = "OPS_DELAY_REASON"
+
+        result = determine_rca_reason_for_event_age_one(task)
+        self.assertEqual(result, "OPS_DELAY_REASON")
+
+if __name__ == "__main__":
+    unittest.main()
