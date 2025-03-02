@@ -1,0 +1,64 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import extract_rca_comments  # Replace 'your_module' with actual module name
+
+class TestExtractRCAComments(unittest.TestCase):
+
+    @patch("your_module.RCA_STATIC_MAP")  # Mock RCA_STATIC_MAP
+    @patch("your_module.EXCEPTION_CONFIRM_TYPES", {"EXCEPTION_TYPE_1", "EXCEPTION_TYPE_2"})  # Mock Exception Types
+    def test_valid_standard_rca_stamp(self, mock_rca_static_map):
+        """Test when RCA stamp exists and confirm type is NOT in EXCEPTION_CONFIRM_TYPES"""
+        rca = MagicMock()
+        mock_stamp = MagicMock(name="StandardStamp")
+        rca.RcaStamp.return_value = mock_stamp
+        rca.ConfirmType.return_value = "STANDARD_TYPE"
+
+        mock_rca_static_map.get.return_value = "Standard RCA Comment"
+
+        result = extract_rca_comments(rca)
+
+        mock_rca_static_map.get.assert_called_once_with("StandardStamp")
+        self.assertEqual(result, "Standard RCA Comment")
+
+    @patch("your_module.RCA_STATIC_MAP")
+    @patch("your_module.EXCEPTION_CONFIRM_TYPES", {"EXCEPTION_TYPE_1", "EXCEPTION_TYPE_2"})
+    def test_valid_exception_rca_stamp(self, mock_rca_static_map):
+        """Test when RCA stamp exists and confirm type is in EXCEPTION_CONFIRM_TYPES"""
+        rca = MagicMock()
+        mock_stamp = MagicMock(name="ExceptionStamp")
+        rca.RcaStamp.return_value = mock_stamp
+        rca.ConfirmType.return_value = "EXCEPTION_TYPE_1"
+
+        mock_rca_static_map.get.return_value = "Exception RCA Comment"
+
+        result = extract_rca_comments(rca)
+
+        mock_rca_static_map.get.assert_called_once_with("ExceptionStamp_EXCEPTION_CONFIRM_TYPE")
+        self.assertEqual(result, "Exception RCA Comment")
+
+    def test_missing_rca_stamp(self):
+        """Test when RCA stamp is missing (should return None)"""
+        rca = MagicMock()
+        rca.RcaStamp.return_value = None  # Simulate missing RcaStamp
+
+        result = extract_rca_comments(rca)
+
+        self.assertIsNone(result)
+
+    @patch("your_module.RCA_STATIC_MAP")
+    def test_missing_rca_static_map_entry(self, mock_rca_static_map):
+        """Test when RCA_STATIC_MAP does not contain the expected entry"""
+        rca = MagicMock()
+        mock_stamp = MagicMock(name="MissingStamp")
+        rca.RcaStamp.return_value = mock_stamp
+        rca.ConfirmType.return_value = "STANDARD_TYPE"
+
+        mock_rca_static_map.get.return_value = None  # Simulate missing key
+
+        result = extract_rca_comments(rca)
+
+        mock_rca_static_map.get.assert_called_once_with("MissingStamp")
+        self.assertIsNone(result)
+
+if __name__ == "__main__":
+    unittest.main()
