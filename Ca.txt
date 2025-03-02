@@ -1,0 +1,37 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import determine_rca_reason_for_event_age_zero  # Replace 'your_module' with actual module name
+
+class TestDetermineRcaReasonForEventAgeZero(unittest.TestCase):
+
+    @patch("your_module.credit_code_na_validator_exists")  # Mock credit_code_na_validator_exists
+    @patch("your_module.RegRCAReasonType")  # Mock RegRCAReasonType
+    def test_credit_code_validator_exists(self, mock_rca_reason_type, mock_credit_validator):
+        """Test when credit_code_na_validator_exists returns True"""
+        parent_task = MagicMock()
+
+        # ✅ Simulate validator returning True
+        mock_credit_validator.return_value = True
+        mock_rca_reason_type.CREDIT_CODE = "CREDIT_CODE_REASON"
+
+        result = determine_rca_reason_for_event_age_zero(parent_task)
+
+        # ✅ Verify it returns CREDIT_CODE
+        self.assertEqual(result, "CREDIT_CODE_REASON")
+
+    @patch("your_module.credit_code_na_validator_exists")
+    @patch("your_module.RegRCAReasonType")
+    def test_credit_code_validator_does_not_exist(self, mock_rca_reason_type, mock_credit_validator):
+        """Test when credit_code_na_validator_exists returns False"""
+        parent_task = MagicMock()
+
+        # ✅ Simulate validator returning False
+        mock_credit_validator.return_value = False
+
+        result = determine_rca_reason_for_event_age_zero(parent_task)
+
+        # ✅ Verify it returns None
+        self.assertIsNone(result)
+
+if __name__ == "__main__":
+    unittest.main()
