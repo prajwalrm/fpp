@@ -1,0 +1,72 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import process_fo_delay_stamp, process_reg_rca_stamp, fetch_rca_tasks  # Replace `your_module` with actual module name
+
+class TestRcaStampProcessing(unittest.TestCase):
+
+    @patch("your_module.process_rca_stamp")
+    def test_process_fo_delay_stamp(self, mock_process_rca_stamp):
+        """Test process FO Delay RCA stamp"""
+        task_data = {"task": MagicMock(), "event_age": 3}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        mock_process_rca_stamp.return_value = "Mocked RCA Object"
+
+        result = process_fo_delay_stamp(task_data, rca_obj, parent_task, db)
+
+        # ✅ Ensure `process_rca_stamp` is called with `process_fo_delay=True`
+        mock_process_rca_stamp.assert_called_once_with(task_data, rca_obj, parent_task, db, process_fo_delay=True)
+
+        # ✅ Validate returned result
+        self.assertEqual(result, "Mocked RCA Object")
+
+    @patch("your_module.process_rca_stamp")
+    def test_process_reg_rca_stamp(self, mock_process_rca_stamp):
+        """Test process Regular RCA stamp"""
+        task_data = {"task": MagicMock(), "event_age": 2}
+        rca_obj = MagicMock()
+        parent_task = MagicMock()
+        db = MagicMock()
+
+        mock_process_rca_stamp.return_value = "Mocked RCA Object"
+
+        result = process_reg_rca_stamp(task_data, rca_obj, parent_task, db)
+
+        # ✅ Ensure `process_rca_stamp` is called with `process_fo_delay=False`
+        mock_process_rca_stamp.assert_called_once_with(task_data, rca_obj, parent_task, db, process_fo_delay=False)
+
+        # ✅ Validate returned result
+        self.assertEqual(result, "Mocked RCA Object")
+
+class TestFetchRcaTasks(unittest.TestCase):
+
+    @patch("your_module.get_rca_eligible_table")
+    @patch("your_module.get_task_events")
+    def test_fetch_rca_tasks(self, mock_get_task_events, mock_get_rca_eligible_table):
+        """Test fetching RCA eligible tasks"""
+        db = MagicMock()
+        db_name = "test_db"
+
+        mock_table = MagicMock()
+        mock_get_rca_eligible_table.return_value = mock_table
+
+        mock_rows = [MagicMock(), MagicMock()]
+        mock_table.rowiter.return_value = mock_rows
+
+        mock_get_task_events.return_value = [{"task": "Task1", "event_age": 5}, {"task": "Task2", "event_age": 10}]
+
+        result = fetch_rca_tasks(db, db_name)
+
+        # ✅ Ensure `get_rca_eligible_table` is called
+        mock_get_rca_eligible_table.assert_called_once_with(db, db_name)
+
+        # ✅ Ensure `get_task_events` is called with `rowiter()`
+        mock_get_task_events.assert_called_once_with(mock_rows, db)
+
+        # ✅ Validate returned result
+        self.assertEqual(result, [{"task": "Task1", "event_age": 5}, {"task": "Task2", "event_age": 10}])
+
+if __name__ == "__main__":
+    unittest.main()
