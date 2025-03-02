@@ -1,0 +1,63 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import is_fo_delay  # Replace 'your_module' with actual module name
+
+class TestIsFODelay(unittest.TestCase):
+
+    @patch("your_module.get_source_event_created_time")  # Mock get_source_event_created_time
+    @patch("your_module.TIME_THRESHOLD_HOURS", 8)  # Assume threshold is 8 hours
+    def test_no_workflow(self, mock_get_source_event_time):
+        """Test when parent_task.Workflow() is None"""
+        parent_task = MagicMock()
+        parent_task.Workflow.return_value = None
+        task = MagicMock()
+
+        result = is_fo_delay(parent_task, task)
+        self.assertFalse(result)
+
+    @patch("your_module.get_source_event_created_time")
+    @patch("your_module.TIME_THRESHOLD_HOURS", 8)
+    def test_no_utc_capture_time(self, mock_get_source_event_time):
+        """Test when wf.UTCCaptureTime() is None"""
+        parent_task = MagicMock()
+        wf = MagicMock()
+        parent_task.Workflow.return_value = wf
+        wf.UTCCaptureTime.return_value = None  # Simulate missing UTCCaptureTime
+
+        task = MagicMock()
+        result = is_fo_delay(parent_task, task)
+
+        self.assertFalse(result)
+
+    @patch("your_module.get_source_event_created_time")
+    @patch("your_module.TIME_THRESHOLD_HOURS", 8)
+    def test_below_threshold(self, mock_get_source_event_time):
+        """Test when elapsed time is below TIME_THRESHOLD_HOURS"""
+        parent_task = MagicMock()
+        wf = MagicMock()
+        parent_task.Workflow.return_value = wf
+        wf.UTCCaptureTime.return_value = MagicMock(total_seconds=lambda: 12 * 3600)  # 12 hours in seconds
+        mock_get_source_event_time.return_value = MagicMock(total_seconds=lambda: 5 * 3600)  # 5 hours in seconds
+
+        task = MagicMock()
+        result = is_fo_delay(parent_task, task)
+
+        self.assertFalse(result)
+
+    @patch("your_module.get_source_event_created_time")
+    @patch("your_module.TIME_THRESHOLD_HOURS", 8)
+    def test_above_threshold(self, mock_get_source_event_time):
+        """Test when elapsed time is above TIME_THRESHOLD_HOURS"""
+        parent_task = MagicMock()
+        wf = MagicMock()
+        parent_task.Workflow.return_value = wf
+        wf.UTCCaptureTime.return_value = MagicMock(total_seconds=lambda: 20 * 3600)  # 20 hours in seconds
+        mock_get_source_event_time.return_value = MagicMock(total_seconds=lambda: 5 * 3600)  # 5 hours in seconds
+
+        task = MagicMock()
+        result = is_fo_delay(parent_task, task)
+
+        self.assertTrue(result)
+
+if __name__ == "__main__":
+    unittest.main()
