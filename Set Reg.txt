@@ -1,0 +1,76 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import set_reg_rca_stamp  # Replace 'your_module' with actual module name
+
+class TestSetRegRcaStamp(unittest.TestCase):
+
+    @patch("your_module.determine_rca_reason_for_event_age_zero")  
+    @patch("your_module.determine_rca_reason_for_event_age_one")  
+    def test_event_age_zero(self, mock_reason_age_one, mock_reason_age_zero):
+        """Test when event_age == 0"""
+        task = MagicMock()
+        parent_task = MagicMock()
+        rca_obj = MagicMock()
+        
+        # ✅ Simulate RCA reason for event_age 0
+        mock_reason_age_zero.return_value = "CREDIT_CODE_REASON"
+
+        set_reg_rca_stamp(task, 0, rca_obj, parent_task)
+
+        # ✅ Verify determine_rca_reason_for_event_age_zero is called
+        mock_reason_age_zero.assert_called_once_with(parent_task)
+        mock_reason_age_one.assert_not_called()
+        
+        # ✅ Verify setValue() is called correctly
+        rca_obj.RcaStamp.setValue.assert_called_once_with("CREDIT_CODE_REASON")
+        rca_obj.write.assert_called_once()
+
+    @patch("your_module.determine_rca_reason_for_event_age_zero")  
+    @patch("your_module.determine_rca_reason_for_event_age_one")  
+    def test_event_age_one_or_more(self, mock_reason_age_one, mock_reason_age_zero):
+        """Test when event_age >= 1"""
+        task = MagicMock()
+        parent_task = MagicMock()
+        rca_obj = MagicMock()
+        
+        # ✅ Simulate RCA reason for event_age 1 or more
+        mock_reason_age_one.return_value = "TECH_ISSUE_REASON"
+
+        set_reg_rca_stamp(task, 1, rca_obj, parent_task)
+
+        # ✅ Verify determine_rca_reason_for_event_age_one is called
+        mock_reason_age_one.assert_called_once_with(task)
+        mock_reason_age_zero.assert_not_called()
+        
+        # ✅ Verify setValue() is called correctly
+        rca_obj.RcaStamp.setValue.assert_called_once_with("TECH_ISSUE_REASON")
+        rca_obj.write.assert_called_once()
+
+    def test_no_parent_task(self):
+        """Test when parent_task is None (should not process)"""
+        task = MagicMock()
+        rca_obj = MagicMock()
+
+        set_reg_rca_stamp(task, 1, rca_obj, None)
+
+        # ✅ Verify setValue() and write() are NOT called
+        rca_obj.RcaStamp.setValue.assert_not_called()
+        rca_obj.write.assert_not_called()
+
+    def test_no_workflow(self):
+        """Test when parent_task.Workflow() is None (should not process)"""
+        task = MagicMock()
+        parent_task = MagicMock()
+        rca_obj = MagicMock()
+        
+        # ✅ Simulate workflow returning None
+        parent_task.Workflow.return_value = None
+
+        set_reg_rca_stamp(task, 1, rca_obj, parent_task)
+
+        # ✅ Verify setValue() and write() are NOT called
+        rca_obj.RcaStamp.setValue.assert_not_called()
+        rca_obj.write.assert_not_called()
+
+if __name__ == "__main__":
+    unittest.main()
