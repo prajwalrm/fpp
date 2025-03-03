@@ -1,0 +1,78 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from your_module import process_rca_tasks_parallel  # Replace `your_module` with actual module name
+
+class TestProcessRcaTasksParallel(unittest.TestCase):
+
+    @patch("your_module.apply")
+    @patch("your_module.get_hugs_env")
+    @patch("your_module.logger")
+    def test_process_rca_tasks_parallel_success(self, mock_logger, mock_get_hugs_env, mock_apply):
+        """Test successful parallel processing of RCA tasks"""
+
+        # Mock Data
+        task_data_list = [{"task": "Task1"}, {"task": "Task2"}]
+        mock_db = MagicMock()
+        db_name = "test_db"
+
+        # Mock Returns
+        mock_get_hugs_env.return_value = "hugs_test_env"
+        mock_apply.return_value = [{"task": "Task1", "status": "processed"}, {"task": "Task2", "status": "processed"}]
+
+        # Call function
+        result = process_rca_tasks_parallel(task_data_list, mock_db, db_name)
+
+        # ✅ Ensure HUGS environment is retrieved
+        mock_get_hugs_env.assert_called_with(db_name)
+
+        # ✅ Ensure `apply` is called with correct parameters
+        mock_apply.assert_called_with(
+            f=process_rca_tasks_parallel.__globals__['process_rca_task'],  # Reference to function
+            data=task_data_list,
+            env="hugs_test_env",
+            bucketSize=process_rca_tasks_parallel.__globals__['DEFAULT_BUCKET_SIZE'],
+            priority=process_rca_tasks_parallel.__globals__['DEFAULT_PRIORITY'],
+            maxConcurrentTasks=process_rca_tasks_parallel.__globals__['DEFAULT_MAX_TASKS'],
+            local=False,
+            name=process_rca_tasks_parallel.__globals__['DEFAULT_GRID_JOB_NAME'],
+            db=mock_db
+        )
+
+        # ✅ Ensure correct logging
+        mock_logger.info.assert_called()
+
+        # ✅ Ensure expected processed results
+        expected_result = [{"task": "Task1", "status": "processed"}, {"task": "Task2", "status": "processed"}]
+        self.assertEqual(result, expected_result)
+
+    @patch("your_module.apply")
+    @patch("your_module.get_hugs_env")
+    @patch("your_module.logger")
+    def test_process_rca_tasks_parallel_failure(self, mock_logger, mock_get_hugs_env, mock_apply):
+        """Test failure handling when parallel processing fails"""
+
+        # Mock Data
+        task_data_list = [{"task": "Task1"}]
+        mock_db = MagicMock()
+        db_name = "test_db"
+
+        # Mock Returns
+        mock_get_hugs_env.return_value = "hugs_test_env"
+        mock_apply.side_effect = Exception("HUGS Grid failure")  # Simulate apply() failure
+
+        # Call function
+        with self.assertRaises(Exception) as context:
+            process_rca_tasks_parallel(task_data_list, mock_db, db_name)
+
+        # ✅ Ensure HUGS environment is retrieved
+        mock_get_hugs_env.assert_called_with(db_name)
+
+        # ✅ Ensure exception is raised
+        self.assertEqual(str(context.exception), "HUGS Grid failure")
+
+        # ✅ Ensure error is logged
+        mock_logger.info.assert_called()
+        mock_logger.error.assert_called()
+
+if __name__ == "__main__":
+    unittest.main()
