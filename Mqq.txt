@@ -1,0 +1,70 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from datetime import datetime
+from your_module import send_update_to_drum  # Replace `your_module` with the actual module name
+
+class TestSendUpdateToDrum(unittest.TestCase):
+
+    @patch("your_module.getRcaTemplate")
+    @patch("your_module.MQMessageSender.get")
+    @patch("your_module.OpsConfirmationsConfig.getConfig")
+    @patch("your_module.logging.info")
+    def test_send_update_to_drum(self, mock_logging, mock_getConfig, mock_mqSender, mock_getRcaTemplate):
+        # Mock inputs
+        mock_db = MagicMock()
+        tradeReference = "TRADE123"
+        queue = "RCA"
+        lastQueue = "PREV_QUEUE"
+        comment = "Test Comment"
+        commentUser = "User1"
+        confirmType = "CONFIRM"
+        eventTime = datetime(2023, 3, 15, 12, 0, 0)
+        workDriver = "WorkDriver1"
+        rcaComments = "RCA Test Comments"
+
+        # Mock return values
+        mock_getConfig.return_value.Drum = MagicMock()
+        mock_mqSender.return_value.send.return_value = True
+        mock_getRcaTemplate.return_value = "Formatted RCA Comments"
+
+        # Call the function
+        result = send_update_to_drum(mock_db, tradeReference, queue, lastQueue, comment, commentUser, confirmType, eventTime, workDriver, rcaComments)
+
+        # Assertions
+        self.assertTrue(result)
+        mock_logging.assert_called()
+        mock_getConfig.assert_called_once_with(mock_db)
+        mock_mqSender.return_value.send.assert_called_once()
+
+    @patch("your_module.getRcaTemplate")
+    @patch("your_module.MQMessageSender.get")
+    @patch("your_module.OpsConfirmationsConfig.getConfig")
+    @patch("your_module.logging.info")
+    def test_send_update_to_drum_without_rca_comments(self, mock_logging, mock_getConfig, mock_mqSender, mock_getRcaTemplate):
+        # Mock inputs without RCA comments
+        mock_db = MagicMock()
+        tradeReference = "TRADE123"
+        queue = "NON_RCA"
+        lastQueue = "PREV_QUEUE"
+        comment = "Test Comment"
+        commentUser = "User1"
+        confirmType = "CONFIRM"
+        eventTime = datetime(2023, 3, 15, 12, 0, 0)
+        workDriver = "WorkDriver1"
+        rcaComments = None  # No RCA comments
+
+        # Mock return values
+        mock_getConfig.return_value.Drum = MagicMock()
+        mock_mqSender.return_value.send.return_value = True
+
+        # Call the function
+        result = send_update_to_drum(mock_db, tradeReference, queue, lastQueue, comment, commentUser, confirmType, eventTime, workDriver, rcaComments)
+
+        # Assertions
+        self.assertTrue(result)
+        mock_logging.assert_called()
+        mock_getConfig.assert_called_once_with(mock_db)
+        mock_mqSender.return_value.send.assert_called_once()
+
+if __name__ == "__main__":
+    unittest.main()
