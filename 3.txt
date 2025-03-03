@@ -1,0 +1,76 @@
+import unittest
+from unittest.mock import patch, MagicMock
+
+# Assuming the methods are imported from the module
+from your_module import getRCAObject, getRCAObjectFromTradeID, getRcaTemplate
+
+class TestRCAFunctions(unittest.TestCase):
+
+    @patch("your_module.OpsConfirmationRca.getRcaObject")
+    @patch("your_module.OpsConfirmationRca.createRcaObject")
+    def test_getRCAObject_existing(self, mock_create, mock_get):
+        mock_db = MagicMock()
+        mock_task = MagicMock()
+        mock_task.BackOfficeID.return_value = "BO123"
+        mock_rca = MagicMock()
+        mock_get.return_value = mock_rca
+
+        result = getRCAObject(mock_task, mock_db)
+
+        mock_get.assert_called_once_with(mock_db, "BO123")
+        mock_create.assert_not_called()
+        self.assertEqual(result, mock_rca)
+
+    @patch("your_module.OpsConfirmationRca.getRcaObject")
+    @patch("your_module.OpsConfirmationRca.createRcaObject")
+    def test_getRCAObject_create_new(self, mock_create, mock_get):
+        mock_db = MagicMock()
+        mock_task = MagicMock()
+        mock_task.BackOfficeID.return_value = "BO123"
+        mock_get.return_value = None
+        mock_rca = MagicMock()
+        mock_create.return_value = mock_rca
+
+        result = getRCAObject(mock_task, mock_db)
+
+        mock_get.assert_called_once_with(mock_db, "BO123")
+        mock_create.assert_called_once_with(mock_db, mock_task)
+        self.assertEqual(result, mock_rca)
+
+    @patch("your_module.OpsConfirmationRca.getRcaObject")
+    def test_getRCAObjectFromTradeID_existing(self, mock_get):
+        mock_db = MagicMock()
+        mock_trade_id = "TRADE123"
+        mock_rca = MagicMock()
+        mock_get.return_value = mock_rca
+
+        result = getRCAObjectFromTradeID(mock_trade_id, mock_db)
+
+        mock_get.assert_called_once_with(mock_db, mock_trade_id)
+        self.assertEqual(result, mock_rca)
+
+    @patch("your_module.string.Template")
+    def test_getRcaTemplate(self, mock_template):
+        mock_rca_comments = {
+            "responsibleForDelay": "Delay Reason",
+            "bamlResponsibilityArea": "Area1",
+            "rcaInformation": "Info",
+            "rcaComments": "Comment",
+            "rcaCommentsText": "Text",
+            "electronicEligible": "Yes",
+            "rcaForInEligibility": "No",
+            "platform": "Platform1",
+            "additionalDetails": "Details",
+            "additionalComments": "Extra Comment"
+        }
+        
+        mock_substitute = MagicMock()
+        mock_template.return_value.substitute = mock_substitute
+
+        result = getRcaTemplate(mock_rca_comments)
+
+        self.assertTrue(mock_substitute.called)
+        self.assertEqual(result, mock_substitute())
+
+if __name__ == '__main__':
+    unittest.main()
