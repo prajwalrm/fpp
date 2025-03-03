@@ -1,0 +1,45 @@
+import unittest
+from unittest.mock import patch, MagicMock
+from your_module import run  # Replace 'your_module' with the actual module name
+
+class TestRunFunction(unittest.TestCase):
+
+    @patch("your_module.process_rca_tasks_parallel")
+    @patch("your_module.fetch_rca_tasks")
+    @patch("your_module.sandra.connect")
+    @patch("your_module.logger")
+    def test_run_with_valid_rca_job(self, mock_logger, mock_connect, mock_fetch_tasks, mock_process_parallel):
+        # Mock database connection
+        mock_db = MagicMock()
+        mock_db.exists.return_value = True
+        mock_db.__getitem__.return_value.contents.get.return_value = True
+        mock_connect.return_value = mock_db
+
+        # Mock fetched tasks
+        mock_fetch_tasks.return_value = [{"task_id": "123"}, {"task_id": "456"}]
+
+        # Run the function
+        run(dbName="ops_dress")
+
+        # Assertions
+        mock_logger.info.assert_any_call("Fetching RCA eligible tasks...")
+        mock_logger.info.assert_any_call("Starting RCA stamp process in parallel using HUGS Grid...")
+        mock_fetch_tasks.assert_called_once_with(mock_db, "ops_dress")
+        mock_process_parallel.assert_called_once_with(mock_fetch_tasks.return_value, mock_db, "ops_dress")
+
+    @patch("your_module.logger")
+    @patch("your_module.sandra.connect")
+    def test_run_with_flag_false(self, mock_connect, mock_logger):
+        # Mock database connection with flag set to False
+        mock_db = MagicMock()
+        mock_db.exists.return_value = False
+        mock_connect.return_value = mock_db
+
+        # Run the function
+        run(dbName="ops_dress")
+
+        # Assertions
+        mock_logger.info.assert_any_call("RCA Job set to False, Exiting...")
+
+if __name__ == "__main__":
+    unittest.main()
