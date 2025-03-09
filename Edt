@@ -1,0 +1,48 @@
+def replace_placeholders(template, trade_reference, trade_date, confirmation_email, include_mailbox):
+    """Replaces placeholders in the email template with actual values."""
+    return template.replace("{{TRADE_REFERENCE}}", trade_reference) \
+                   .replace("{{TRADE_DATE}}", trade_date) \
+                   .replace("{{CONFIRMATION_EMAIL}}", confirmation_email) \
+                   .replace("{{INCLUDE_MAILBOX}}", include_mailbox)
+
+# Example trade values
+trade_data = {
+    "trade_reference": "2492867151-AO1-1",
+    "trade_date": "02 Aug 2024",
+    "confirmation_email": "Db.gelpdocumentationlondon@bofa.com",
+    "include_mailbox": "otc.confirms.monitor@bofa.com"
+}
+
+# Simulated fetch from database
+db_template = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Trade Confirmation Follow-Up</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <p>Hi,</p>
+
+    <p>Our records show that we have executed the attached trade and we are awaiting your confirmation for review. 
+    As this is an EMIR reportable trade, we are reaching out to you to follow up and ensure that the confirmation 
+    is provided and executed between parties prior to / or as close to T+1 as possible.</p>
+
+    <p>We ask that you please review the confirmation attached for our reference number <strong>{{TRADE_REFERENCE}}</strong>, 
+    trade dated <strong>{{TRADE_DATE}}</strong> with BofA Securities Europe SA and kindly return the executed confirmation 
+    to <a href="mailto:{{CONFIRMATION_EMAIL}}">{{CONFIRMATION_EMAIL}}</a> at your earliest convenience.</p>
+
+    <p>If you wish for BofA to issue, please respond in kind and we will provide a copy of our outbound confirmation.</p>
+
+    <p>Should you have any questions or concerns, please feel free to reach out in reply to this email or per my contact details provided below.</p>
+
+    <p><strong>Note:</strong> Please reply to all (including mailbox: 
+    <a href="mailto:{{INCLUDE_MAILBOX}}">{{INCLUDE_MAILBOX}}</a>) 
+    on your responses to ensure efficient STP processing and prompt action on our end.</p>
+
+</body>
+</html>"""
+
+# Replace placeholders
+updated_email = replace_placeholders(db_template, trade_data["trade_reference"], trade_data["trade_date"], trade_data["confirmation_email"], trade_data["include_mailbox"])
+
+print(updated_email)  # This would be sent to the frontend
